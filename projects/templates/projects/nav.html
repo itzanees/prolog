@@ -1,0 +1,69 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg app-nav">
+    <div class="container-xl">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'projects:dashboard' %}">
+            <span class="brand-mark">F</span>
+            <span><strong>Ultratek ProLog</strong><small>Project control</small></span>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <div class="dropdown">
+                <a class="btn btn-sm btn-outline-light dropdown-toggle" type="button"
+                    href="{% url 'inventory:inventory' %}" id="dropdownMenuBtn" data-bs-toggle="dropdown"
+                    aria-expanded="false">Inventory</a>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuBtn">
+                    <li>
+                        <a class="dropdown-item btn btn-sm btn-outline-dark d-none d-sm-inline-flex"
+                            href="{% url 'inventory:inventory' %}">Inventory</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item btn btn-sm btn-outline-dark d-none d-sm-inline-flex"
+                            href="{% url 'inventory:uom' %}">UoM</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item btn btn-sm btn-outline-dark d-none d-sm-inline-flex"
+                            href="{% url 'inventory:category' %}">Category</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item btn btn-sm btn-outline-dark d-none d-sm-inline-flex"
+                            href="{% url 'inventory:suppliers' %}">Suppliers</a>
+                    </li>
+                </ul>
+            </div>
+            <a class="btn btn-sm btn-outline-light d-none d-sm-inline-flex" href="{% url 'projects:dashboard' %}">
+                All projects</a>
+
+            <div class="d-flex align-items-center gap-2">
+                <div class="dropdown">
+                    <a class="btn btn-sm btn-outline-light dropdown-toggle" type="button"
+                        href="{% url 'projects:equipments' %}" id="dropdownMenuBtn" data-bs-toggle="dropdown"
+                        aria-expanded="false">Equipment</a>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuBtn">
+                        <li>
+                            <a class="dropdown-item btn btn-sm btn-outline-dark d-none d-sm-inline-flex"
+                                href="{% url 'projects:equipments' %}">All Equipments</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item btn btn-sm btn-outline-dark d-none d-sm-inline-flex"
+                                href="{% url 'projects:equipment_types' %}">Equipment Types</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item btn btn-sm btn-outline-dark d-none d-sm-inline-flex"
+                                href="{% url 'projects:equipment_create' %}">Create Equipment</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <a class="btn btn-sm btn-accent" href="{% url 'projects:project_create' %}">+ Add project</a>
+                {% if request.user.is_authenticated %}
+                <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="split-btn btn-auth">
+                        Log Out
+                    </button>
+                </form>
+                {% else %}
+                <a class="split-btn btn-auth " href="{% url 'login' %}">Login</a>
+                {% endif %}
+            </div>
+        </div>
+</nav>

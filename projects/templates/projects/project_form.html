@@ -1,0 +1,105 @@
+{% extends 'projects/base.html' %}
+{% block title %}{{ page_title }} | ProLog{% endblock %}
+{% block content %}
+<div class="page-heading mb-4">
+  <div>
+    <a class="back-link" href="{% if project %}{{ project.get_absolute_url }}{% else %}{% url 'projects:dashboard' %}{% endif %}">← Back</a>
+    <p class="eyebrow mb-1 mt-3">PROJECT RECORD</p>
+    <h1 class="h2 mb-1">{{ page_title }}</h1>
+    <p class="text-muted mb-0">Use the fields below to maintain the project register.</p>
+  </div>
+</div>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <section class="content-card form-card mb-4">
+        <div class="section-heading">
+          <span class="section-number">01</span>
+          <div><h2 class="h5 mb-1">Project identity</h2><p class="text-muted small mb-0">The essentials used to identify and find this record.</p></div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label" for="{{ form.project_no.id_for_label }}">Project no.</label>
+            {{ form.project_no }}
+            {% for error in form.project_no.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-8">
+            <label class="form-label" for="{{ form.project_title.id_for_label }}">Project title</label>
+            {{ form.project_title }}
+            {% for error in form.project_title.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="{{ form.client.id_for_label }}">Client</label>
+            {{ form.client }}
+            {% for error in form.client.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="{{ form.project_type.id_for_label }}">Project Type</label>
+            {{ form.project_type }}
+            {% for error in form.project_type.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="{{ form.location.id_for_label }}">Location</label>
+            {{ form.location }}
+            {% for error in form.location.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="content-card form-card">
+        <div class="section-heading">
+          <span class="section-number">02</span>
+          <div><h2 class="h5 mb-1">Delivery details</h2><p class="text-muted small mb-0">Define the work and give the team an accurate next-step view.</p></div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label" for="{{ form.start_date.id_for_label }}">Start date</label>
+            {{ form.start_date }}
+            {% for error in form.start_date.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="{{ form.work_status.id_for_label }}">Work status</label>
+            {{ form.work_status }}
+            {% for error in form.work_status.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="{{ form.scope_of_work.id_for_label }}">Scope of work</label>
+            {{ form.scope_of_work }}
+            <div class="form-hint">{{ form.scope_of_work.help_text }}</div>
+            {% for error in form.scope_of_work.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+          
+          <div class="col-12">
+            <label class="form-label" for="{{ form.work_status_detail.id_for_label }}">Work Status Details</label>
+            {{ form.work_status_detail }}
+            <div class="form-hint">{{ form.work_status_detail.help_text }}</div>
+            {% for error in form.work_status_detail.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="{{ form.remaining_work.id_for_label }}">Remaining work</label>
+            {{ form.remaining_work }}
+            <div class="form-hint">{{ form.remaining_work.help_text }}</div>
+            {% for error in form.remaining_work.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="col-lg-4">
+      <aside class="side-note">
+        <p class="eyebrow mb-2">GOOD TO KNOW</p>
+        <h2 class="h5">Keep the record useful.</h2>
+        <p class="small text-muted mb-0">Project numbers must be unique. Equipment movements can be added after saving the main project record.</p>
+      </aside>
+      <div class="form-actions d-flex justify-content-end gap-2 mt-4">
+        <a href="{% if project %}{{ project.get_absolute_url }}{% else %}{% url 'projects:dashboard' %}{% endif %}" class="btn btn-light border">Cancel</a>
+        <button type="submit" class="btn btn-accent">{{ submit_label }} <span aria-hidden="true">→</span></button>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

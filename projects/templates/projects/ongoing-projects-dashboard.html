@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Dashboard</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Global & Dark Theme */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #1e1e2f;
+            color: #e0e0e0;
+            padding: 2rem;
+        }
+        h1 { font-size: 2rem; margin-bottom: 1.5rem; color: #f0f0f0; }
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        /* Loading / Error / Empty states */
+        .state-message {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 60vh; text-align: center;
+        }
+        .spinner {
+            border: 6px solid #444; border-top: 6px solid #4caf50;
+            border-radius: 50%; width: 60px; height: 60px;
+            animation: spin 0.8s linear infinite; margin-bottom: 1rem;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error-message { background: #d32f2f; color: white; padding: 1rem 2rem; border-radius: 8px; margin-bottom: 1rem; }
+        .retry-btn {
+            background: #388e3c; color: white; border: none; padding: 0.6rem 1.8rem;
+            border-radius: 4px; cursor: pointer; font-size: 1rem;
+        }
+        .retry-btn:hover { background: #2e7d32; }
+        .empty-message { font-size: 1.2rem; color: #aaa; }
+
+        /* Cards */
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .card {
+            background: #2a2a3d; border-radius: 10px; padding: 1.5rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-4px); }
+        .card-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #9e9e9e; }
+        .card-value { font-size: 2.4rem; font-weight: 700; margin-top: 0.3rem; }
+        .card-label { font-size: 0.9rem; color: #aaa; margin-top: 0.3rem; }
+
+        /* Chart grid */
+        .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .chart-box {
+            background: #2a2a3d; border-radius: 10px; padding: 1rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .chart-box canvas { max-height: 300px; }
+
+        /* Controls */
+        .controls { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; align-items: center; }
+        .controls input, .controls select {
+            padding: 0.6rem 1rem; border-radius: 6px; border: none;
+            background: #2a2a3d; color: #e0e0e0; font-size: 0.95rem;
+        }
+        .controls input { flex: 1; min-width: 200px; }
+        .controls select { width: 180px; }
+
+        /* Table */
+        .table-wrapper { overflow-x: auto; }
+        table {
+            width: 100%; border-collapse: collapse; background: #2a2a3d;
+            border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        th { background: #3a3a50; padding: 0.9rem 1rem; text-align: left; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        th:hover { background: #4a4a60; }
+        td { padding: 0.8rem 1rem; border-bottom: 1px solid #3a3a50; }
+        tr:hover td { background: #32324a; }
+        .progress-bar-wrapper { display: flex; align-items: center; gap: 0.6rem; }
+        .progress-bar {
+            flex: 1; height: 8px; background: #444; border-radius: 4px; overflow: hidden;
+            min-width: 80px;
+        }
+        .progress-fill {
+            height: 100%; background: #4caf50; border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .progress-fill.warning { background: #ff9800; }
+        .progress-fill.danger { background: #f44336; }
+        .status-pill {
+            display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px;
+            font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+        }
+        .status-active { background: #388e3c; color: white; }
+        .status-completed { background: #1565c0; color: white; }
+        .status-stalled { background: #c62828; color: white; }
+        .status-planning { background: #f9a825; color: #1e1e2f; }
+        .notes-cell { position: relative; cursor: help; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .notes-tooltip {
+            visibility: hidden; background: #111; color: #eee; padding: 0.5rem 0.8rem;
+            border-radius: 6px; position: absolute; z-index: 10; bottom: 130%; left: 0;
+            white-space: normal; max-width: 300px; font-size: 0.85rem; word-wrap: break-word;
+        }
+        .notes-cell:hover .notes-tooltip { visibility: visible; }
+        .sort-indicator { margin-left: 4px; opacity: 0.5; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📊 Project Dashboard</h1>
+
+    <!-- Loading state -->
+    <div id="loadingState" class="state-message">
+        <div class="spinner"></div>
+        <p>Loading project data...</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="errorState" class="state-message" style="display:none;">
+        <div class="error-message" id="errorText"></div>
+        <button class="retry-btn" onclick="loadData()">Retry</button>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="state-message" style="display:none;">
+        <p class="empty-message">No projects found. Check your data source.</p>
+    </div>
+
+    <!-- Dashboard content (hidden until data loaded) -->
+    <div id="dashboardContent" style="display:none;">
+        <!-- Summary cards -->
+        <div class="cards" id="summaryCards"></div>
+
+        <!-- Charts -->
+        <div class="charts">
+            <div class="chart-box"><canvas id="locationChart"></canvas></div>
+            <div class="chart-box"><canvas id="completionChart"></canvas></div>
+            <div class="chart-box"><canvas id="clientChart"></canvas></div>
+            <div class="chart-box"><canvas id="statusChart"></canvas></div>
+        </div>
+
+        <!-- Table controls -->
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="Search by client, project, location..." oninput="filterTable()">
+            <select id="statusFilter" onchange="filterTable()">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="stalled">Stalled</option>
+                <option value="planning">Planning</option>
+            </select>
+            <span style="color: #aaa;" id="rowCount"></span>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('project_no')">Project # <span class="sort-indicator">⇅</span></th>
+                        <th onclick="sortTable('client')">Client <span class="sort-indicator">⇅</span></th>
+                        <th onclick="sortTable('project_title')">Title <span class="sort-indicator">⇅</span></th>
+                        <th onclick="sortTable('location')">Location <span class="sort-indicator">⇅</span></th>
+                        <th onclick="sortTable('completion_percent')">Progress <span class="sort-indicator">⇅</span></th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---- CONFIG ----
+    const API_BASE_URL = '/api/';  // adjust to your Django URL
+
+    let allProjects = [];
+    let filteredProjects = [];
+    let sortField = 'sl_no';
+    let sortAsc = true;
+
+    // ---- Main load ----
+    async function loadData() {
+        document.getElementById('loadingState').style.display = 'flex';
+        document.getElementById('errorState').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('dashboardContent').style.display = 'none';
+
+        try {
+            const resp = await fetch(`${API_BASE_URL}projects/`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+            const data = await resp.json();
+            allProjects = data;
+            // console.log(allProjects[1].work_status);
+            // allProjects.forEach(element => {
+            //     console.log(element.work_status);
+            // });
+            
+            if (allProjects.length === 0) {
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'flex';
+                return;
+            }
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('dashboardContent').style.display = 'block';
+            renderDashboard();
+        } catch (err) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'flex';
+            document.getElementById('errorText').textContent = `Failed to load projects: ${err.message}`;
+        }
+    }
+
+    // ---- Render everything ----
+    function renderDashboard() {
+        renderSummaryCards();
+        renderCharts();
+        filterTable(); // also renders table
+    }
+
+    // ---- Summary Cards ----
+    function renderSummaryCards() {
+        const total = allProjects.length;        
+        const active = allProjects.filter(p => p.work_status == 'IN_PROGRESS' && p.completion_percent < 100).length;
+        console.log(active);
+        
+        const completed = allProjects.filter(p => p.is_completed || p.completion_percent >= 100).length;
+        const avgProgress = total > 0
+            ? allProjects.reduce((sum, p) => sum + (p.completion_percent || 0), 0) / total
+            : 0;
+
+        const cards = [
+            { title: 'Total Projects', value: total, label: 'All projects' },
+            { title: 'Active', value: active, label: 'In progress' },
+            { title: 'Completed', value: completed, label: 'Fully finished' },
+            { title: 'Avg Progress', value: avgProgress.toFixed(1) + '%', label: 'Across all projects' },
+        ];
+
+        document.getElementById('summaryCards').innerHTML = cards.map(c => `
+            <div class="card">
+                <div class="card-title">${c.title}</div>
+                <div class="card-value">${c.value}</div>
+                <div class="card-label">${c.label}</div>
+            </div>
+        `).join('');
+    }
+
+    // ---- Charts ----
+    let chartInstances = {};
+
+    function renderCharts() {
+        // Destroy previous charts
+        Object.values(chartInstances).forEach(c => c.destroy());
+        chartInstances = {};
+
+        // 1. Location Donut
+        const locCounts = {};
+        allProjects.forEach(p => {
+            const loc = p.location || 'Unknown';
+            locCounts[loc] = (locCounts[loc] || 0) + 1;
+        });
+        const locLabels = Object.keys(locCounts);
+        const locData = Object.values(locCounts);
+        const locColors = ['#4caf50','#2196f3','#ff9800','#9c27b0','#f44336','#00bcd4','#cddc39','#795548'];
+        chartInstances.location = new Chart(document.getElementById('locationChart'), {
+            type: 'doughnut',
+            data: {
+                labels: locLabels,
+                datasets: [{
+                    data: locData,
+                    backgroundColor: locColors.slice(0, locLabels.length),
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#ddd' } } } }
+        });
+
+        // 2. Completion % Horizontal Bar (top 10 in-progress)
+        const inProgress = allProjects.filter(p => !p.is_completed && p.completion_percent < 100)
+            .sort((a,b) => b.completion_percent - a.completion_percent)
+            .slice(0, 10);
+        const compLabels = inProgress.map(p => (p.project_title || 'Unknown').substring(0, 25) + (p.project_title?.length > 25 ? '...' : ''));
+        const compData = inProgress.map(p => p.completion_percent || 0);
+        chartInstances.completion = new Chart(document.getElementById('completionChart'), {
+            type: 'bar',
+            data: {
+                labels: compLabels,
+                datasets: [{
+                    label: 'Completion %',
+                    data: compData,
+                    backgroundColor: '#4caf50',
+                    barThickness: 18,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                scales: { x: { max: 100, grid: { color: '#444' }, ticks: { color: '#ccc' } }, y: { ticks: { color: '#ccc' } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // 3. Client Distribution Bar
+        const clientCounts = {};
+        allProjects.forEach(p => {
+            const c = p.client || 'Unknown';
+            clientCounts[c] = (clientCounts[c] || 0) + 1;
+        });
+        const clientLabels = Object.keys(clientCounts).sort((a,b) => clientCounts[b] - clientCounts[a]);
+        const clientData = clientLabels.map(l => clientCounts[l]);
+        chartInstances.client = new Chart(document.getElementById('clientChart'), {
+            type: 'bar',
+            data: {
+                labels: clientLabels,
+                datasets: [{
+                    label: 'Projects',
+                    data: clientData,
+                    backgroundColor: '#2196f3',
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1, color: '#ccc' }, grid: { color: '#444' } }, x: { ticks: { color: '#ccc' } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // 4. Status Breakdown (Active, Completed, Stalled, Planning)
+        const statusCounts = { active: 0, completed: 0, stalled: 0, planning: 0 };
+        allProjects.forEach(p => {
+            if (p.is_completed || p.completion_percent >= 100) statusCounts.completed++;
+            else if (p.notes && p.notes.toLowerCase().includes('stalled')) statusCounts.stalled++;
+            else if (!p.start_date || p.completion_percent === 0) statusCounts.planning++;
+            else statusCounts.active++;
+        });
+        chartInstances.status = new Chart(document.getElementById('statusChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Active', 'Completed', 'Stalled', 'Planning'],
+                datasets: [{
+                    data: [statusCounts.active, statusCounts.completed, statusCounts.stalled, statusCounts.planning],
+                    backgroundColor: ['#388e3c', '#1565c0', '#c62828', '#f9a825'],
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1, color: '#ccc' }, grid: { color: '#444' } }, x: { ticks: { color: '#ccc' } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // ---- Table with search, filter, sort ----
+    function filterTable() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+
+        filteredProjects = allProjects.filter(p => {
+            // search
+            const searchMatch =
+                (p.project_no && p.project_no.toLowerCase().includes(search)) ||
+                (p.client && p.client.toLowerCase().includes(search)) ||
+                (p.project_title && p.project_title.toLowerCase().includes(search)) ||
+                (p.location && p.location.toLowerCase().includes(search));
+            if (!searchMatch) return false;
+
+            // status filter
+            if (statusFilter !== 'all') {
+                const isComplete = p.is_completed || p.completion_percent >= 100;
+                const isStalled = p.notes && p.notes.toLowerCase().includes('stalled');
+                const isPlanning = !p.start_date || p.completion_percent === 0;
+                if (statusFilter === 'active' && (isComplete || isStalled || isPlanning)) return false;
+                if (statusFilter === 'completed' && !isComplete) return false;
+                if (statusFilter === 'stalled' && !isStalled) return false;
+                if (statusFilter === 'planning' && !isPlanning) return false;
+            }
+            return true;
+        });
+
+        // sort
+        const direction = sortAsc ? 1 : -1;
+        filteredProjects.sort((a, b) => {
+            let valA = a[sortField], valB = b[sortField];
+            if (sortField === 'project_no' || sortField === 'client' || sortField === 'project_title' || sortField === 'location') {
+                valA = (valA || '').toLowerCase();
+                valB = (valB || '').toLowerCase();
+                return valA.localeCompare(valB) * direction;
+            }
+            if (sortField === 'completion_percent') {
+                return ((valA || 0) - (valB || 0)) * direction;
+            }
+            return 0;
+        });
+
+        renderTable();
+    }
+
+    function sortTable(field) {
+        if (sortField === field) {
+            sortAsc = !sortAsc;
+        } else {
+            sortField = field;
+            sortAsc = true;
+        }
+        filterTable(); // re-run with new sort
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = filteredProjects.map(p => {
+            const percent = p.completion_percent || 0;
+            const barClass = percent >= 80 ? '' : (percent >= 50 ? 'warning' : 'danger');
+            const isComplete = p.is_completed || percent >= 100;
+            const statusClass = isComplete ? 'status-completed' :
+                (p.notes && p.notes.toLowerCase().includes('stalled') ? 'status-stalled' :
+                (!p.start_date || percent === 0 ? 'status-planning' : 'status-active'));
+            const statusLabel = isComplete ? 'Completed' :
+                (p.notes && p.notes.toLowerCase().includes('stalled') ? 'Stalled' :
+                (!p.start_date || percent === 0 ? 'Planning' : 'Active'));
+
+            const notes = p.notes || '';
+            const notesDisplay = notes ? notes.substring(0, 40) + (notes.length > 40 ? '...' : '') : '—';
+
+            return `<tr>
+                <td>${p.project_no || '—'}</td>
+                <td>${p.client || '—'}</td>
+                <td>${p.project_title || '—'}</td>
+                <td>${p.location || '—'}</td>
+                <td>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar">
+                            <div class="progress-fill ${barClass}" style="width:${percent}%"></div>
+                        </div>
+                        <span>${percent.toFixed(1)}%</span>
+                    </div>
+                </td>
+                <td><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+                <td class="notes-cell">
+                    ${notesDisplay}
+                    <div class="notes-tooltip">${notes || 'No notes'}</div>
+                </td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('rowCount').textContent = `${filteredProjects.length} / ${allProjects.length} projects`;
+    }
+
+    // ---- Init ----
+    loadData();
+</script>
+</body>
+</html>

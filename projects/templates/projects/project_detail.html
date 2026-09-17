@@ -1,0 +1,228 @@
+{% extends 'projects/base.html' %}
+{% block title %}{{ project.project_no }} | Ultra ProLog{% endblock %}
+{% block content %}
+<div class="page-heading mb-4">
+  <div>
+    <a class="back-link" href="{% url 'projects:dashboard' %}">← All projects</a>
+    <div class="d-flex align-items-center flex-wrap gap-2 mt-3">
+      <p class="eyebrow mb-0">{{ project.project_no }}</p>
+      <span class="status-pill status-{{ project.work_status|lower|cut:' ' }}">
+        {{ project.get_work_status_display }}</span>
+    </div>
+    <h1 class="h2 mt-2 mb-1">{{ project.project_title }}</h1>
+    <p class="text-muted mb-0">{{ project.client }} <span class="dot-divider">·</span> {{ project.location }}</p> 
+    <span class="small text-success">Last Updated: {{project.updated_at|date:"d M Y | h:m A"}}</span>
+  </div>
+  <div class="heading-actions d-flex gap-2">
+    <a class="btn btn-light border" href="{% url 'projects:project_update' project.pk %}">Edit</a>
+    <a class="btn btn-dark" href="{% url 'projects:project_report' project.pk %}">View report <span
+        aria-hidden="true">↗</span></a>
+  </div>
+</div>
+
+<section class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="content-card h-100">
+      <div class="card-header-row compact-row">
+        <div>
+          <p class="eyebrow mb-1">PROJECT BRIEF</p>
+          <h2 class="h5 mb-0">Scope of work</h2>
+        </div>
+        <span class="record-label">Started {{ project.start_date|date:"d M Y" }}</span>
+      </div>
+      <div class="rich-copy">{{ project.scope_of_work|linebreaks }}</div>
+      <div class="remaining-box mt-4">
+        <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+          <h3 class="h6 mb-0">Remaining work</h3>
+        </div>
+        {% if project.remaining_work %}<div class="rich-copy mb-0">{{ project.remaining_work|linebreaks }}</div>
+        {% else %}<p class="text-muted small mb-0">No remaining work has been recorded.</p>{% endif %}
+      </div>
+      {% if project.work_status_detail %}
+      <div class="source-note mt-3">
+        <h3 class="h6 mb-2">Status notes</h3>
+        <div class="rich-copy small">{{ project.work_status_detail|linebreaks }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="content-card h-100">
+      <p class="eyebrow mb-3">AT A GLANCE</p>
+      <dl class="summary-list mb-0">
+        <div>
+          <dt>Project no.</dt>
+          <dd>{{ project.project_no }}</dd>
+        </div>
+        <div>
+          <dt>Client</dt>
+          <dd>{{ project.client }}</dd>
+        </div>
+        <div>
+          <dt>Location</dt>
+          <dd>{{ project.location }}</dd>
+        </div>
+        <div>
+          <dt>Start date</dt>
+          <dd>{{ project.start_date|date:"d M Y" }}</dd>
+        </div>
+        <div>
+          <dt>Equipment entries</dt>
+          <dd>{{ project.equipment_count }}</dd>
+        </div>
+        <div>
+          <dt>Last updated</dt>
+          <dd>{{ project.updated_at|date:"d M Y, H:i" }}</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- TASKS -->
+
+<section class="content-card">
+  <div class="card-header-row align-items-start">
+    <div>
+      <p class="eyebrow mb-1">PROJECT TASKS</p>
+      <h2 class="h4 mb-1">TASKS <span class="count-chip">{{ project.tasks_count }}</span></h2>
+      <p class="text-muted small mb-0">Tasks for this project.</p>
+    </div>
+  </div>
+
+  <div class="equipment-form-panel mt-4 mb-4">
+    <form method="post" action="{% url 'projects:task_add' project.pk %}">
+      {% csrf_token %}
+      <div class="row g-2 align-items-end">
+        
+        <div class="col-sm-6 col-lg-2"><label class="form-label small"
+            for="{{ project_task_form.entry_date.id_for_label }}">Date</label>{{ project_task_form.entry_date }}</div>
+        <div class="col-sm-6 col-lg-3"><label class="form-label small"
+            for="{{ project_task_form.subject.id_for_label }}">Task Subject</label>{{ project_task_form.subject }}
+        </div>
+        <div class="col-sm-6 col-lg-2"><label class="form-label small"
+            for="{{ project_task_form.status.id_for_label }}">Status</label>{{ project_task_form.status }}</div>
+        <div class="col-sm-6 col-lg-1"><label class="form-label small"
+            for="{{ project_task_form.priority.id_for_label }}">Priority</label>{{ project_task_form.priority }}</div>
+        <div class="col-sm-4 col-lg-1"><button type="submit" class="btn btn-accent w-100">Add</button></div>
+      </div>
+    </form>
+  </div>
+
+  {% if project.tasks_count %}
+  <div class="table-responsive">
+    <table class="table project-table equipment-table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Task</th>
+          <th>Status</th>
+          <th>Priority</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in project.project_tasks.all %}
+        <tr>
+          <td class="text-nowrap">{{ entry.entry_date|date:"d M Y" }}</td>
+          <td class="fw-semibold"><a href="{% url 'projects:task_details' project.pk entry.pk %}">{{ entry.subject }}</a></td>
+          <td class="text-capitalize">{{ entry.status }}</td>
+          <td class="text-info text-capitalize status-pill">{{ entry.priority }}</td>
+          <td class="text-end">
+            <form method="post" action="{% url 'projects:task_delete' project.pk entry.pk %}"
+              onsubmit="return confirm('Remove this task entry?');">
+              {% csrf_token %}<button class="btn btn-sm btn-link text-danger p-0" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state compact-empty">
+    <div class="empty-icon">◌</div>
+    <p class="mb-0 text-muted">No Tasks yet. Add the first task above.</p>
+  </div>
+  {% endif %}
+</section>
+
+<!-- end -->
+
+<section class="content-card">
+  <div class="card-header-row align-items-start">
+    <div>
+      <p class="eyebrow mb-1">EQUIPMENT HISTORY</p>
+      <h2 class="h4 mb-1">Movement register <span class="count-chip">{{ project.equipment_count }}</span></h2>
+      <p class="text-muted small mb-0">Log equipment issued, returned, serviced, or transferred for this project.</p>
+    </div>
+  </div>
+
+  <div class="equipment-form-panel mt-4 mb-4">
+    <form method="post" action="{% url 'projects:equipment_add' project.pk %}">
+      {% csrf_token %}
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-6 col-lg-2"><label class="form-label small"
+            for="{{ equipment_form.entry_date.id_for_label }}">Date</label>{{ equipment_form.entry_date }}</div>
+        <div class="col-sm-6 col-lg-3"><label class="form-label small"
+            for="{{ equipment_form.equipment.id_for_label }}">Equipment</label>{{ equipment_form.equipment }}
+        </div>
+        <div class="col-sm-6 col-lg-2"><label class="form-label small"
+            for="{{ equipment_form.activity.id_for_label }}">Activity</label>{{ equipment_form.activity }}</div>
+        <div class="col-sm-6 col-lg-1"><label class="form-label small"
+            for="{{ equipment_form.quantity.id_for_label }}">Qty.</label>{{ equipment_form.quantity }}</div>
+        <div class="col-sm-8 col-lg-3"><label class="form-label small"
+            for="{{ equipment_form.notes.id_for_label }}">Notes</label>{{ equipment_form.notes }}</div>
+        <div class="col-sm-4 col-lg-1"><button type="submit" class="btn btn-accent w-100">Add</button></div>
+      </div>
+    </form>
+  </div>
+
+  {% if project.equipment_count %}
+  <div class="table-responsive">
+    <table class="table project-table equipment-table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Equipment</th>
+          <th>Activity</th>
+          <th>Qty.</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in project.equipment_history.all %}
+        <tr>
+          <td class="text-nowrap">{{ entry.entry_date|date:"d M Y" }}</td>
+          <td class="fw-semibold">{{ entry.equipment.equipment_type }}</td>
+          <td><span class="activity-chip">{{ entry.activity }}</span></td>
+          <td>{{ entry.quantity }}</td>
+          <td class="text-muted">{{ entry.notes|default:"—" }}</td>
+          <td class="text-end">
+            <form method="post" action="{% url 'projects:equipment_delete' project.pk entry.pk %}"
+              onsubmit="return confirm('Remove this equipment history entry?');">
+              {% csrf_token %}<button class="btn btn-sm btn-link text-danger p-0" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state compact-empty">
+    <div class="empty-icon">◌</div>
+    <p class="mb-0 text-muted">No equipment history entries yet. Add the first movement above.</p>
+  </div>
+  {% endif %}
+</section>
+
+<div class="danger-zone mt-4 d-flex justify-content-between align-items-center gap-3 flex-wrap">
+  <div><strong>Delete this project</strong><span class="d-block small text-muted">This also removes its equipment
+      history.</span></div>
+  <form method="post" action="{% url 'projects:project_delete' project.pk %}"
+    onsubmit="return confirm('Delete this project and all equipment history?');">{% csrf_token %}<button
+      class="btn btn-sm btn-outline-danger" type="submit">Delete project</button></form>
+</div>
+{% endblock %}

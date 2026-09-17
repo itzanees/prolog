@@ -1,0 +1,58 @@
+{% extends 'projects/base.html' %}
+{% block title %}{{ page_title }} | ProLog{% endblock %}
+{% block content %}
+<div class="page-heading mb-4">
+  <div>
+    <a class="back-link"
+      href="{% if project %}{{ project.get_absolute_url }}{% else %}{% url 'projects:dashboard' %}{% endif %}">←
+      Back</a>
+    <p class="eyebrow mb-1 mt-3">Equipments</p>
+    <h1 class="h2 mb-1">{{ page_title }}</h1>
+    <p class="text-muted mb-0">Equipments types available.</p>
+  </div>
+</div>
+
+<section class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="content-card h-100">
+      {% for type in eqtypes %}
+      <div class="metric-card">
+        <strong class="metric-value">{{ type.equipment_type }}</strong>
+        <span class="metric-note">{{type.equipment_properties}}</span>
+      </div>
+      {% empty %}
+      <p>Nothing available, Create types first</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <section class="content-card form-card mb-4">
+        <div class="section-heading">
+          <h2 class="h5 mb-1">Create Equipment type</h2>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-12">
+            <label class="form-label" for="{{ form.equipment_type.id_for_label }}">Type of equipment</label>
+            {{ form.equipment_type }}
+            {% for error in form.equipment_type.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-12">
+            <label class="form-label" for="{{ form.equipment_properties.id_for_label }}">Properties</label>
+            {{ form.equipment_properties }}
+            {% for error in form.equipment_manufacture.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <div class="form-actions d-flex justify-content-end gap-2 mt-4">
+        <button type="submit" class="btn btn-accent">{{ submit_label }} <span aria-hidden="true">→</span></button>
+      </div>
+    </form>
+</section>
+
+{% endblock %}

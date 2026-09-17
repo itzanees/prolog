@@ -1,0 +1,110 @@
+{% extends 'projects/base.html' %}
+{% load static %}
+{% block title %}Dashboard | Ultratek ProLog{% endblock %}
+{% block content %}
+<section class="hero-panel mb-4 mb-lg-5">
+  <div class="row align-items-end g-4">
+    <div class="col-lg-8">
+      <p class="eyebrow mb-2">OPERATIONS REGISTER</p>
+      <h1 class="display-6 fw-semibold mb-3">Keep every project moving.</h1>
+      <p class="hero-copy mb-0">Capture the full project brief, monitor work status, and keep a clear history of equipment movements in one place.</p>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+      <a href="{% url 'projects:project_create' %}" class="btn btn-accent btn-lg">Create a project <span aria-hidden="true">→</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="metric-card">
+      <span class="metric-label">Total projects</span>
+      <strong class="metric-value">{{ stats.total }}</strong>
+      <span class="metric-note">Across the register</span>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="metric-card metric-blue">
+      <span class="metric-label">In progress</span>
+      <strong class="metric-value">{{ stats.in_progress }}</strong>
+      <span class="metric-note">Active delivery</span>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="metric-card metric-green">
+      <span class="metric-label">Completed</span>
+      <strong class="metric-value">{{ stats.completed }}</strong>
+      <span class="metric-note">Ready to close</span>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="metric-card metric-amber">
+      <span class="metric-label">On hold</span>
+      <strong class="metric-value">{{ stats.on_hold }}</strong>
+      <span class="metric-note">Needs attention</span>
+    </div>
+  </div>
+</section>
+
+<section class="content-card">
+  <div class="card-header-row">
+    <div>
+      <p class="eyebrow mb-1">PROJECT DIRECTORY</p>
+      <h2 class="h4 mb-0">All projects <span class="count-chip">{{ projects|length }}</span></h2>
+    </div>
+    <form method="get" class="filter-form" role="search">
+      <div class="input-group search-box">
+        <span class="input-group-text">⌕</span>
+        <input class="form-control" type="search" name="q" value="{{ query }}" placeholder="Search project, client, location" aria-label="Search projects">
+      </div>
+      <select class="form-select status-filter" name="status" aria-label="Filter by work status">
+        <option value="">Every status</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-dark" type="submit">Filter</button>
+      {% if query or selected_status %}<a class="btn btn-light border" href="{% url 'projects:dashboard' %}">Reset</a>{% endif %}
+    </form>
+  </div>
+
+  {% if projects %}
+    <div class="table-responsive">
+      <table class="table project-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th>Client</th>
+            <th>Location</th>
+            <th>Start date</th>
+            <th>Status</th>
+            <th class="text-end">Open</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for project in projects %}
+            <tr>
+              <td>
+                <a class="project-link" href="{{ project.get_absolute_url }}">{{ project.project_title }}</a>
+                <span class="d-block project-number">{{ project.project_no }}</span>
+              </td>
+              <td>{{ project.client }}</td>
+              <td>{{ project.location }}</td>
+              <td class="text-nowrap">{{ project.start_date|date:"d M Y" }}</td>
+              <td><span class="status-pill status-{{ project.work_status|lower|cut:' ' }}">{{ project.get_work_status_display }}</span></td>
+              <td class="text-end"><a class="open-link" href="{{ project.get_absolute_url }}" aria-label="Open {{ project.project_title }}">View <span aria-hidden="true">→</span></a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">＋</div>
+      <h3 class="h5">No projects found</h3>
+      <p class="text-muted mb-3">{% if query or selected_status %}Try changing your search or filter.{% else %}Create your first project record to get started.{% endif %}</p>
+      {% if query or selected_status %}<a href="{% url 'projects:dashboard' %}" class="btn btn-light border">Clear filters</a>{% else %}<a href="{% url 'projects:project_create' %}" class="btn btn-accent">Add a project</a>{% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
