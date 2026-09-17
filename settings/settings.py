@@ -92,7 +92,8 @@ DATABASES = {
         'USER' : os.environ.get('DB_USER'),
         'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST'),
-        'PORT' : os.environ.get('DB_PORT')
+        'PORT' : os.environ.get('DB_PORT'),
+        'OPTIONS' : os.environ.get('DB_OPTIONS')
     }
 }
 
@@ -152,7 +153,7 @@ PASSWORD_HASHERS = [
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
+STATIC_ROOT = '/var/www/prolog/staticfiles/'
 
 # Auth direction rules
 LOGIN_URL = 'login'
