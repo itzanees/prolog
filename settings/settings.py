@@ -93,7 +93,10 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST'),
         'PORT' : os.environ.get('DB_PORT'),
-        'OPTIONS' : os.environ.get('DB_OPTIONS')
+        "OPTIONS": {
+            "init_command": os.getenv("DB_INIT_COMMAND", ""),
+            "charset": os.getenv("DB_CHARSET", "utf8mb4"),
+        },
     }
 }
 
